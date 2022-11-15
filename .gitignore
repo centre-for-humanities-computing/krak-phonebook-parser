@@ -1,3 +1,6 @@
+# Data files
+2004-husregister.pdf
+
 # Logs
 logs
 *.log
@@ -128,3 +131,8 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+
+.DS_Store
+test.js
+texts/2004/2004-page-0
