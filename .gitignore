@@ -136,3 +136,4 @@ dist
 .DS_Store
 test.js
 texts/
+todo.md
