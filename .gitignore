@@ -132,7 +132,7 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-
+# Custom ignores
 .DS_Store
 test.js
-texts/2004/2004-page-0
+texts/
