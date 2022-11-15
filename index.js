@@ -8,11 +8,6 @@ let extract = require('pdf-text-extract');
 let PDFpath = path.join(__dirname, "pdfs/"); // absolute path for pdfs
 let textPath = path.join(__dirname, "texts/"); // absolute path for extracted text
 
-let extractOptions = { //options object for extract() -- doesn't seem to work properly
-    firstPage: 0,
-    lastPage: 1
-}
-
 function run() {
     
     readPDFs();
@@ -24,6 +19,12 @@ run();
 /////////////////////////////////
 
 function readPDFs () {
+    // Options object for extract() -- doesn't seem to work properly
+    let extractOptions = { 
+        firstPage: 0,
+        lastPage: 1
+    }
+
     // Gets all filenames in the pdf folder
     let filenames = fs.readdirSync(PDFpath); 
 
