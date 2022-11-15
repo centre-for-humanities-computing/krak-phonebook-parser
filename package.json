@@ -1,0 +1,22 @@
+{
+  "name": "krak-phonebook-parser",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/centre-for-humanities-computing/krak-phonebook-parser.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/centre-for-humanities-computing/krak-phonebook-parser/issues"
+  },
+  "homepage": "https://github.com/centre-for-humanities-computing/krak-phonebook-parser#readme",
+  "dependencies": {
+    "pdf-text-extract": "^1.5.0"
+  }
+}
