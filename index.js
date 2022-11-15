@@ -6,41 +6,49 @@ let extract = require('pdf-text-extract');
 // 2. Parse
 
 // let PDFpath = path.join(__dirname, "pdfs/");
-let PDFpath = path.join(__dirname, "test/");
-let textPath = path.join(__dirname, "texts/");
+let PDFpath = path.join(__dirname, "test/"); // absolute path for pdfs
+let textPath = path.join(__dirname, "texts/"); // absolute path for extracted text
 
-let extractOptions = {
+let extractOptions = { //options object for extract() -- doesn't seem to work properly
     firstPage: 0,
     lastPage: 1
 }
 
-// Gets all filenames in the data folder
-let filenames = fs.readdirSync(PDFpath);
+// Gets all filenames in the pdf folder
+let filenames = fs.readdirSync(PDFpath); 
 
 for (let filename of filenames) {
+    // absolute path for the file
     let filePath = path.join(PDFpath, filename);
-    console.log(filePath);
+    
+    // the callback gives text: an array of pages of the original PDF
     extract(filePath, extractOptions, function(err, text) {
         if (err) {
             console.dir(err);
             return;
         }
 
-        console.dir(text.length);
         writeToFiles(filename, text);
     })
 }
 
 function writeToFiles(originalFilename, pages) {
-    let year = originalFilename.match(/\d{4}/)[0]; // gets year
+    // Get year from filename and build new folder path
+    let year = originalFilename.match(/\d{4}/)[0];
     let localDir = path.join(textPath, year);
+
+    // See if the folder exists; if not, create
     if (!fs.existsSync(localDir)) {
         fs.mkdirSync(localDir);
     }
     
+    // For each page in the PDF
     for (let i = 0; i < pages.length; i++) {
-        let name = year + "-page-" + i;
+        // Path
+        let name = year + "-page-" + i + ".txt";
         let pageFilename = path.join(localDir, name);
+        
+        // Create a new file for each page
         fs.writeFile(pageFilename, pages[i], "utf-8", function(err) {
             if (err) { console.log(err) }
         })
