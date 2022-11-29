@@ -101,7 +101,8 @@ function parseFile(filename, data) {
                 }
 
                 let obj = {
-                    name: name,
+                    lastName: name.lastName,
+                    name: name.name,
                     phone: phone,
                     street: currentGade,
                     streetNumber: streetNumber,
@@ -135,8 +136,12 @@ function cleanPhoneNumber(str) {
 }
 
 function cleanName(str) {
-    let cleanedString = "";
-    return str;
+    let newStr = str.trim();
+    let names = newStr.split(/\s+/);
+    let nameData = {}
+    nameData.lastName = names[0];
+    nameData.name = names[1];
+    return nameData;
 }
 
 function cleanStreetNumber(str) {
