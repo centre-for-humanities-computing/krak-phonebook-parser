@@ -137,3 +137,6 @@ dist
 test.js
 texts/
 todo.md
+test/output.html
+test/output.txt
+test/snippet.txt

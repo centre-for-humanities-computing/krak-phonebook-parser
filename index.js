@@ -2,11 +2,14 @@ let path = require('path');
 let fs = require('fs');
 let extract = require('pdf-text-extract');
 
-// 1. Extract data to array
-// 2. Parse
-
+let dataFolder = "";
 let PDFpath = path.join(__dirname, "pdfs/"); // absolute path for pdfs
 let textPath = path.join(__dirname, "texts/"); // absolute path for extracted text
+
+//////////////////
+// Note: The pdf-text-extract has issues with options -- I instead extracted the text using the 'pdftotext' terminal command with the raw argument: "pdftotext -r [input] [output]"
+// https://www.xpdfreader.com/pdftotext-man.html
+//////////////////
 
 function run() {
     
