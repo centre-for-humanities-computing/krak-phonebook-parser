@@ -61,7 +61,7 @@ function parseFile(filename, data) {
     let currentBy = null;
 
     // Going over every line
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < lines.length; i++) {
         let name;
         let phone;
         let streetNumber = null;
