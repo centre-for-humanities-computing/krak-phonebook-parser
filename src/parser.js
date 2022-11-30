@@ -1,10 +1,12 @@
 let fs = require('fs');
-const { runMain } = require('module');
-const { parse } = require('path');
 let path = require('path');
-const { runInContext } = require('vm');
+let args = process.argv;
 
-let basePath = "/Volumes/Seagate/Krak/extracts";
+let outputToMultipleFiles = true;
+
+let outputFile = "../data/data.json";
+
+let basePath = "/Volumes/Seagate/Krak/extracts/";
 let filenames = fs.readdirSync(basePath);
 
 // Regex patterns for various elements
@@ -28,7 +30,7 @@ run();
 
 // Reader
 function run() {
-    for (let filename of filenames) {
+     for (let filename of filenames) {
         if (filename[0] === ".") { continue; }
 
         let fullPath = path.join(basePath, filename)
@@ -37,6 +39,7 @@ function run() {
         parseFile(filename, data);
         
         // Output to file
+        printData(data);
         let json = JSON.stringify(collection, null, 2);
         let writePath = path.join(basePath, "output.json");
         fs.writeFileSync(writePath, json, 'utf-8');
@@ -44,11 +47,21 @@ function run() {
     }
 }
 
+    function printData(data) {
+        // try open file fs.openSync()
+        // skriv linje for linje med fs.writeSync()
+        // catch (err) 
+        // finally if (still open) > fs.close
+}
+
 // A function that takes a filename of the current file and the file content as a string
 function parseFile(filename, data) {
     // Give me an array of lines to loop over
     let lines = data.split("\n")
     
+    let successfulLines = 0;
+    let abandonedLines = 0;
+
     let year = getYearFromFilename(filename);
     let dataObj = {
         year: year,
@@ -61,7 +74,7 @@ function parseFile(filename, data) {
     let currentBy = null;
 
     // Going over every line
-    for (let i = 0; i < lines.length; i++) {
+    for (let i = 0; i < 1000; i++) {
         let name;
         let phone;
         let streetNumber = null;

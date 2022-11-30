@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -17,6 +18,7 @@
   },
   "homepage": "https://github.com/centre-for-humanities-computing/krak-phonebook-parser#readme",
   "dependencies": {
+    "commander": "^9.4.1",
     "pdf-text-extract": "^1.5.0"
   }
 }
