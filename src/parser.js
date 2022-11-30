@@ -1,6 +1,92 @@
-let fs = require('fs');
-let path = require('path');
-let args = process.argv;
+import rules from '../rules/rules.js';
+import utils from './utils.js'
+
+
+class Parser {
+
+    #temporaryDirectoryPath
+    #destinationDirectoryPath
+    #rules
+
+    constructor(temporaryDirectoryPath, destinationObj) {
+        this.#temporaryDirectoryPath = temporaryDirectoryPath;
+        this.#destinationDirectoryPath = destinationObj.path;
+        this.#rules = rules;
+    }
+
+    parse() {
+        let filenames = this.#getTemporaryFilenames(this.#temporaryDirectoryPath);
+        for (let filename of filenames) {
+            let year = this.#getYearFromFilename(filename);
+            this.#parseFile(year);
+        }
+    }
+
+    #parseFile(year) {
+
+    }
+
+    #writeToDestinationFile(data, filename) {
+        // try open file fs.openSync()
+        // skriv linje for linje med fs.writeSync()
+        // catch (err) 
+        // finally if (still open) > fs.close
+    }
+
+    #getTemporaryFilenames(dir) {
+        let filenames = utils.getFileNamesInDirectory(dir);
+        return filenames.filter((filename) => this.#isValidFilename);
+
+    }
+
+    #isValidFilename(filename) {
+        return /^[^_.].*\.txt$/i.test(filename); // Does not begin with _ or. and ends with .txt
+    }
+
+    #getYearFromFilename(filename) {
+        let match = /\d{4}/i.exec(filename);
+        if (match) {
+            return match[0];
+        } else {
+            throw new Error("Filename: " + filename + " did not contain a proper year");
+        }
+    }
+}
+
+export { Parser }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
 
 let outputToMultipleFiles = true;
 
@@ -26,7 +112,7 @@ let collection = {
     data: []
 }
 
-run();
+// run();
 
 // Reader
 function run() {
@@ -48,10 +134,7 @@ function run() {
 }
 
     function printData(data) {
-        // try open file fs.openSync()
-        // skriv linje for linje med fs.writeSync()
-        // catch (err) 
-        // finally if (still open) > fs.close
+
 }
 
 // A function that takes a filename of the current file and the file content as a string
@@ -82,6 +165,8 @@ function parseFile(filename, data) {
         if (regexes.disregards.test(lines[i])) {
             continue;
         }
+
+        // TODO: Lav et tjek til at se, om der er noget kolofon-agtigt inden gaderne
 
         if (regexes.gadenavn.test(lines[i])) {
             if (regexes.postnr.test(lines[i+1])) {
@@ -162,3 +247,4 @@ function cleanStreetNumber(str) {
     
     return Number(res);
 }
+*/

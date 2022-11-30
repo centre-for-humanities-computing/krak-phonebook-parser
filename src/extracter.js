@@ -1,123 +1,68 @@
-import * as cmd from 'node-cmd';
+import cmd from 'node-cmd';
+import fs from 'node:fs';
+import path from 'node:path';
 import utils from './utils.js';
 
 class Extracter {
 
     #sourcePath
     #sourceIsDir
-    #destinationDirPath
+    #temporaryDirPath
 
-    constructor(source, destination) {
+    constructor(source, temporaryDirectory) {
         this.#sourcePath = source.path;
         this.#sourceIsDir = source.isDir;
-        this.#destinationDirPath = destination.path;
+        this.#temporaryDirPath = temporaryDirectory;
     }
 
     extractText() {
+        let filenames;
         if (this.#sourceIsDir) {
-            let filenames = this.#getPDFFileNamesInDirectory(this.#sourcePath)
+            filenames = this.#getPDFFileNamesInDirectory(this.#sourcePath)
+        } else {
+            let filename = path.basename(this.#sourcePath)
+            if (this.#isValidPDFFile(filename)) {
+                filenames = [filename];
+            } else {
+                throw new Error("Not a valid file path.")
+            }
+            
         }
+
+        for (let filename of filenames) {
+            let fullSourceFilePath;
+            if (this.#sourceIsDir) {
+                fullSourceFilePath = path.join(this.#sourcePath, filename);
+            } else {
+                fullSourceFilePath = this.#sourcePath;
+            }
+            let tempFileName = filename.replace(/.pdf$/i, ".txt");
+            let fullTemporaryFilePath = path.join(this.#temporaryDirPath, tempFileName);
+            this.#extractFromPDF(fullSourceFilePath, fullTemporaryFilePath);
+        }
+
+    }
+
+    #extractFromPDF(fullSourceFilePath, fullTemporaryFilePath) {
+        // console.log(cmd)
+        let cmdCommand = "pdftotext -raw " + fullSourceFilePath + " " + fullTemporaryFilePath;
+        console.log(cmdCommand);
+        cmd.run(cmdCommand, function(err, data, stderr) {
+            if (err) throw new Error("Something went wrong in running the pdftotext command");
+        });
     }
 
     #getPDFFileNamesInDirectory(dir) {
         let res = utils.getFileNamesInDirectory(dir);
-        let pdfs = res.filter((filename) => {
-            return /^[^_.].*\.pdf$/i.test(filename)
-        });
+        let pdfs = res.filter((filename) => this.#isValidPDFFile(filename));
         console.log(pdfs);
         return pdfs;
     }
+
+    #isValidPDFFile(filename) {
+        return /^[^_.].*\.pdf$/i.test(filename); // Does not begin with . or _ and ends with .pdf
+    }
+
 }
 
 export { Extracter };
-
-
-
-
-
-
-
-
-
-
-
-// let extract = require('pdf-text-extract');
-
-
-
-
-
-
-
-
-/*
-
-let dataFolder = "";
-let PDFpath = path.join(__dirname, "pdfs/"); // absolute path for pdfs
-let textPath = path.join(__dirname, "texts/"); // absolute path for extracted text
-
-//////////////////
-// Note: The pdf-text-extract has issues with options -- I instead extracted the text using the 'pdftotext' terminal command with the raw argument: "pdftotext -r [input] [output]"
-// https://www.xpdfreader.com/pdftotext-man.html
-//////////////////
-
-function run() {
-    
-    readPDFs();
-}
-
-// run();
-
-
-/////////////////////////////////
-
-function readPDFs () {
-    // Options object for extract() -- doesn't seem to work properly
-    let extractOptions = { 
-        firstPage: 0,
-        lastPage: 1
-    }
-
-    // Gets all filenames in the pdf folder
-    let filenames = fs.readdirSync(PDFpath); 
-
-    for (let filename of filenames) {
-        // absolute path for the file
-        let filePath = path.join(PDFpath, filename);
-        
-        // the callback gives text: an array of pages of the original PDF
-        extract(filePath, extractOptions, function(err, text) {
-            if (err) {
-                console.dir(err);
-                return;
-            }
-
-            writeToFiles(filename, text);
-        })
-    }
-}
-
-
-function writeToFiles(originalFilename, pageArray) {
-    // Get year from filename and build new folder path
-    let year = originalFilename.match(/\d{4}/)[0];
-    let localDir = path.join(textPath, year);
-
-    // See if the folder exists; if not, create
-    if (!fs.existsSync(localDir)) {
-        fs.mkdirSync(localDir);
-    }
-    
-    // For each page in the PDF
-    for (let i = 0; i < pageArray.length; i++) {
-        // Path
-        let name = year + "-page-" + i + ".txt";
-        let pageFilename = path.join(localDir, name);
-        
-        // Create a new file for each page
-        fs.writeFile(pageFilename, pageArray[i], "utf-8", function(err) {
-            if (err) { console.log(err) }
-        })
-    }
-}
-*/
