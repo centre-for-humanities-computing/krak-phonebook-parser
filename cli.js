@@ -1,9 +1,10 @@
 import { program } from 'commander';
 import path from 'path';
 import fs from 'fs';
+
+import utils from './src/utils.js';
 import { Extracter } from "./src/extracter.js";
 import { Parser } from "./src/parser.js";
-import utils from './src/utils.js';
 
 function run() {
     program.requiredOption('-s, --source <path>', 'The absolute source path to read from. If resolves to a directory, parses all files in the directory. If path to file, parse only that file');
@@ -18,7 +19,7 @@ function run() {
     utils.makeTemporaryDirectory(temporaryDirectory);
     
     let extracter = new Extracter(source, temporaryDirectory);
-    // extracter.extractText();
+    extracter.extractText();
 
     let parser = new Parser(temporaryDirectory, destination);
     parser.parse();
@@ -51,3 +52,5 @@ function resolvePath(pathToResolve) {
 }
 
 run();
+
+export { run }

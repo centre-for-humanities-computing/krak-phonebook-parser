@@ -5,13 +5,17 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/centre-for-humanities-computing/krak-phonebook-parser.git"
   },
-  "author": "",
+  "author": {
+    "name": "Bjarke Vognstrup Fog",
+    "email": "bfog@cc.au.dk",
+    "url": "https://github.com/donbjarkone"
+  },
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/centre-for-humanities-computing/krak-phonebook-parser/issues"
