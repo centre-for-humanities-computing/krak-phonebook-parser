@@ -19,6 +19,7 @@
   "homepage": "https://github.com/centre-for-humanities-computing/krak-phonebook-parser#readme",
   "dependencies": {
     "commander": "^9.4.1",
+    "node-cmd": "^5.0.0",
     "pdf-text-extract": "^1.5.0"
   }
 }

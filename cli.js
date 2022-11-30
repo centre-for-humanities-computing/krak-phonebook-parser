@@ -1,19 +1,20 @@
 import { program } from 'commander';
 import * as path from 'path';
 import * as fs from 'fs';
-// import { Extractor } from "./src/extractor.js";
+import { Extracter } from "./src/extracter.js";
 // import { Parser } from "./src/parser.js";
 
 function run() {
     program.requiredOption('-s, --source <path>', 'The absolute source path to read from. If resolves to a directory, parses all files in the directory. If path to file, parse only that file');
     program.requiredOption('-d, --destination <directory>', 'The absolute path to a folder in which to output data')
-    // program.option('-f, --file', 'A flag to set if reading just one file')
     program.parse();
 
     let options = program.opts();
     let source = resolvePath(options.source);
     let destination = resolvePath(options.destination);
-    
+
+    let extracter = new Extracter(source, destination);
+    extracter.extractText();
 }
 
 function resolvePath(pathToResolve) {
@@ -36,6 +37,7 @@ function resolvePath(pathToResolve) {
     }
     
     console.log(res);
+    return res;
 }
 
 run();

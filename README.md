@@ -18,6 +18,8 @@ Uses the npm package `pdf-text-extract` to extract text from PDFs that already c
 
 `node parse`
 
+- Note: All files must have their year in the filename in the YYYY format. The script will take the first valid year in the filename as the basis for the output.
+
 ## CLI options
 
 - `-s, -source <path>` [required]: A path to the file or folder containing the PDFs to be read and parsed. If the path resolves to a file, the `-f, --file` argument must be supplied. 

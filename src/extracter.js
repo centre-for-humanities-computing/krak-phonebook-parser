@@ -1,6 +1,56 @@
-let path = require('path');
-let fs = require('fs');
-let extract = require('pdf-text-extract');
+import * as cmd from 'node-cmd';
+import utils from './utils.js';
+
+class Extracter {
+
+    #sourcePath
+    #sourceIsDir
+    #destinationDirPath
+
+    constructor(source, destination) {
+        this.#sourcePath = source.path;
+        this.#sourceIsDir = source.isDir;
+        this.#destinationDirPath = destination.path;
+    }
+
+    extractText() {
+        if (this.#sourceIsDir) {
+            let filenames = this.#getPDFFileNamesInDirectory(this.#sourcePath)
+        }
+    }
+
+    #getPDFFileNamesInDirectory(dir) {
+        let res = utils.getFileNamesInDirectory(dir);
+        let pdfs = res.filter((filename) => {
+            return /^[^_.].*\.pdf$/i.test(filename)
+        });
+        console.log(pdfs);
+        return pdfs;
+    }
+}
+
+export { Extracter };
+
+
+
+
+
+
+
+
+
+
+
+// let extract = require('pdf-text-extract');
+
+
+
+
+
+
+
+
+/*
 
 let dataFolder = "";
 let PDFpath = path.join(__dirname, "pdfs/"); // absolute path for pdfs
@@ -16,7 +66,7 @@ function run() {
     readPDFs();
 }
 
-run();
+// run();
 
 
 /////////////////////////////////
@@ -70,3 +120,4 @@ function writeToFiles(originalFilename, pageArray) {
         })
     }
 }
+*/
