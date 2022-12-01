@@ -18,13 +18,13 @@ class RuleLibrary {
             rangeStart: 2001,
             rangeEnd: 2008,
             type: "postalCity",
-            regex: /^(?<postal>(?:\d|[^A-ZÆØÅa-zæøå ]){4}) +(?<city>[A-Za-zÆØÅæøå ]+)/ // capturing groups: postal, city
+            regex: /^(?<postal>(?:\d|[^A-ZÆØÅa-zæøå ]){4,6}) +(?<city>[A-Za-zÆØÅæøå ]+)/ // capturing groups: postal, city
         },
         {
             rangeStart: 2001,
             rangeEnd: 2008,
             type: "municipality",
-            regex: /^Kommune\W+(?<municipality>[A-Za-zÆØæøå]*$)/, // capturing group: municipality
+            regex: /Kommune\W+(?<municipality>[A-ZÆØÅ][a-zæøå]+(?: [A-ZÆØÅ][a-zæøå]+)*)/ // capturing group: municipality
         },
         {
             rangeStart: 2001,
@@ -45,6 +45,15 @@ class RuleLibrary {
 
     }
     
+    getOffset(year, type) {
+        for (let rule of this.#rules) {
+            if (this.#matchesTypeInRange(year, type, rule) && rule.hasOwnProperty("maxOffsetFromName")) {
+                return rule.maxOffsetFromName;
+            }
+        }
+        return 0;
+    }
+
     matchesType(line, year, type) {
         let regexes = this.#getMatchingRules(year, type);
 

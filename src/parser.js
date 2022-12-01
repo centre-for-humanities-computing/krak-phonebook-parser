@@ -8,22 +8,32 @@ class Parser {
 
     #temporaryDirectoryPath
     #destinationDirectoryPath
-    #rules
     #allStreets
     #ruleLib
+    #stats
+    #lineLengthThreshold
+    #debug
+    #unparsedLines
 
-    constructor(temporaryDirectoryPath, destinationPathObj) {
+    constructor(temporaryDirectoryPath, destinationPathObj, lineLengthThreshold, debugMode) {
         this.#temporaryDirectoryPath = temporaryDirectoryPath;
         this.#destinationDirectoryPath = destinationPathObj.path;
         this.#allStreets = new Map();
         this.#ruleLib = new RuleLibrary();
-
+        this.#stats = [];
+        this.#lineLengthThreshold = lineLengthThreshold;
+        this.#debug = debugMode;
+        this.#unparsedLines = [];
     }
 
-    parse() {
+    parse(printStatsToFile) {
         let filenames = this.#getTemporaryFilenames(this.#temporaryDirectoryPath);
 
-        console.log(filenames);
+        if (this.#debug) {
+            console.log('------------------------------------------')
+            console.log("Temporary files to process: " + filenames.join(", "))
+            console.log('------------------------------------------')
+        }
 
         for (let filename of filenames) {
             let tempFilePath = path.join(this.#temporaryDirectoryPath, filename);
@@ -31,11 +41,16 @@ class Parser {
         }
 
         this.#writeToDestinationFile(this.#getAllStreetsAsArray());
-        
+        this.#outputStats(printStatsToFile);
+        if (this.#debug) {
+            utils.writeArrayToFile(this.#destinationDirectoryPath, this.#unparsedLines, "failed-lines.txt");
+        }
     }
 
     #parseFile(tempFilePath, filename) {
+        console.log('------------------------------------------')
         console.log("Parsing temporary file: " + filename);
+        console.log('------------------------------------------')
 
         let year = this.#getYearFromFilename(filename);
         let lines = this.#getFileContentasArray(tempFilePath);
@@ -43,6 +58,7 @@ class Parser {
         let currentStreet = null;
         let currentPostal = null;
         let currentCity = null;
+        let currentMunicipality = null;
         let currentPerson = null;
 
         let totalLines = lines.length;
@@ -54,9 +70,13 @@ class Parser {
         
         for (let i = 0; i < lines.length; i++) {
             let line = lines[i];
-            // Test if line is of type to be disregarded
-            if (this.#ruleLib.matchesType(line, year, "disregard")) { 
+            let currentLineMatchedOrDisregarded = false;
+
+            // Test if line is of type to be disregarded or if the length of the line is below a certain threshold
+            if (line.length < this.#lineLengthThreshold || this.#ruleLib.matchesType(line, year, "disregard")) { //check line length threshold and "blacklisted" terms
                 ignoredLines++;
+                currentLineMatchedOrDisregarded = true;
+
                 continue;
              }
             
@@ -64,11 +84,12 @@ class Parser {
             let streetMatch = this.#ruleLib.matchesType(line, year, "street");
             if(streetMatch) {
                 successfulLines++;
+                currentLineMatchedOrDisregarded = true;
 
                 currentStreet = streetMatch.groups.street;
                 currentPostal = null;
                 currentCity = null;
-                let foundStreetOnPreviousLine = true;
+                currentMunicipality = null;
             }
 
             // Test if line contains postal code and city (but only if not currently any registered)
@@ -76,53 +97,137 @@ class Parser {
                 let postalCityMatch = this.#ruleLib.matchesType(line, year, "postalCity");
                 if (postalCityMatch) {
                     successfulLines++;
+                    currentLineMatchedOrDisregarded = true;
 
                     currentPostal = postalCityMatch.groups.postal;
                     currentCity = postalCityMatch.groups.city;
-                    this.#addStreet(currentStreet, currentPostal, currentCity);
+                    this.#addStreet(currentStreet);
+                    this.#addPostalAndCityToStreet(currentStreet, currentPostal, currentCity);
+                }
+            }
+
+            if (!currentMunicipality) {
+                let municipalityMatch = this.#ruleLib.matchesType(line, year, "municipality");
+                if (municipalityMatch) {                    
+                    successfulLines++;
+                    currentLineMatchedOrDisregarded = true;
+
+                    currentMunicipality = municipalityMatch.groups.municipality;
+                    this.#addMunicipalityToStreet(currentStreet, currentMunicipality);
                 }
             }
 
             // Test if line contains a name (if yes, then test for street number)
             let nameMatch = this.#ruleLib.matchesType(line, year, "nameHousenumber");
-            if (nameMatch) {
+            if (nameMatch && currentStreet && currentPostal && currentCity) {
                 successfulLines++;
+                currentLineMatchedOrDisregarded = true;
 
                 let rawName = nameMatch.groups.name;
                 let cleanedName = this.#cleanName(rawName);
                 currentPerson = {
-                    lastName: cleanedName.lastName,
-                    name: cleanedName.name,
-                    number: null
+                    name: cleanedName,
+                    phone: null,
+                    street: currentStreet,
+                    number: null,
+                    postal: currentPostal,
+                    city: currentCity
                 }
 
                 if (nameMatch.groups.number) {
                     let cleanedNumber = this.#cleanStreetNumber(nameMatch.groups.number);
                     currentPerson.number = cleanedNumber;
                 }
-                console.log(currentPerson);
 
                 // See if there is a phonenumber in the same line; if not, look X lines ahead to check
                 let phoneMatch = this.#ruleLib.matchesType(line, year, "phone");
-                
+                if (!phoneMatch) {
+                    let offset = this.#ruleLib.getOffset(year, "phone");
+                    for (let j = i; j <= i + offset; j++) {
+                        phoneMatch = this.#ruleLib.matchesType(line, year, "phone");
+                        let tempNameMatch = this.#ruleLib.matchesType(line, year, "nameHousenumber");
+                        if (phoneMatch && !tempNameMatch) {
+                            successfulLines++;
+                            currentLineMatchedOrDisregarded = true;
+
+                            break;
+                        }
+                    }
+                }
+
+                if (phoneMatch) {
+                    let rawPhone = phoneMatch.groups.phone;
+                    let cleanedPhone = this.#cleanPhoneNumber(rawPhone);
+                    currentPerson.phone = cleanedPhone;
+                }
             }
 
-            currentPerson = null;
+            if (currentPerson) {
+                peopleArray.push(currentPerson);
+                currentPerson = null;
+            }
+
+            if (this.#debug) {
+                if(!currentLineMatchedOrDisregarded) {
+                    this.#unparsedLines.push(filename + ": '" + line + "' ------------- " + currentStreet + " " + currentCity + " " + currentPostal);
+                }
+            }
+        }
+        
+
+        let successRate = successfulLines / (totalLines-ignoredLines);
+
+        this.#stats.push(...[
+            "Filename: " + filename,
+            "Total lines = " + totalLines,
+            "Succesful lines = " + successfulLines,
+            "Ignored lines = " + ignoredLines,
+            "Success rate = " + successRate.toFixed(2) + " (succesful lines / (total lines - ignored lines))",
+            "\n"
+        ]);
+
+        this.#writeToDestinationFile(peopleArray, year);
+    }
+
+    #outputStats(toFile = false) {
+        if (!toFile) {
+            for (let line of this.#stats) {
+                console.log(line);
+            }
+        } else {
+            let outputPath = path.join(this.#destinationDirectoryPath, "/stats.txt")
+            let filePtr;
+            try{
+                filePtr = fs.openSync(outputPath, 'w');
+                if (this.#debug) {
+                    console.log('------------------------------------------')
+                    console.log("Succesfully opened file: " + outputPath)
+                    console.log('------------------------------------------')
+                }
+                let outputData = this.#stats.join("\n");
+                fs.appendFileSync(outputPath, outputData, "utf-8");
+            } catch {
+                throw new Error("A problem occurred while writing to statistics file. Try removing flag -r, --rate")
+            } finally {
+                if (filePtr) {
+                    fs.closeSync(filePtr);
+                }
+            }
+            
         }
 
-        console.log("Succesful lines = " + successfulLines);
-        console.log("Disregarded lines = " + ignoredLines);
+    }
 
-        // this.#writeToDestinationFile(outputArray, year);
+    #cleanPhoneNumber(str) {
+        let res = str.replace(/\D/g, "")
+        
+        return Number(res);
     }
 
     #cleanName(str) {
         let newStr = str.trim();
-        let names = newStr.split(/\s+/);
-        let nameData = {}
-        nameData.lastName = names[0];
-        nameData.name = names[1];
-        return nameData;
+        let name = newStr.replace(/\s+/, " ");
+        return name;
     }
 
     #cleanStreetNumber(str) {
@@ -159,21 +264,39 @@ class Parser {
             throw new Error("Something went wrong when saving json output to file.");
         } finally {
             if (filePtr) {
+                console.log("Succesfully created file: " + filename);
                 fs.closeSync(filePtr);
             }
         }
     }
 
-    #addStreet(streetname, postalCode, city) {
+    #addStreet(streetname) {
         if (this.#allStreets.has(streetname)) {
             return;
         }
 
         this.#allStreets.set(streetname, {
             street: streetname,
-            postal: postalCode,
-            city: city
         });
+    }
+
+    #addPostalAndCityToStreet(street, postalCode, city) {
+        if (!this.#allStreets.has(street)) {
+            return;
+        }
+        let obj = this.#allStreets.get(street);
+        obj.postal = postalCode;
+        obj.city = city;
+        this.#allStreets.set(street, obj);
+    }
+
+    #addMunicipalityToStreet(street, municipality) {
+        if (!this.#allStreets.has(street)) {
+            return;
+        }
+        let obj = this.#allStreets.get(street);
+        obj.municipality = municipality;
+        this.#allStreets.set(street, obj);
     }
 
     #getAllStreetsAsArray() {
@@ -182,6 +305,9 @@ class Parser {
         for (let [street, data] of iter) {
             res.push(data);
         }
+        res.sort(function(obj1, obj2) {
+            return obj2.street.localeCompare(obj1);
+        })
         return res;
     }
 
@@ -192,7 +318,7 @@ class Parser {
     }
 
     #isValidFilename(filename) {
-        return /^[^_.].*\.txt$/i.test(filename); // Does not begin with _ or. and ends with .txt
+        return /^[^._].*\.txt$/i.test(filename); // Does not begin with _ or. and ends with .txt
     }
 
     #getYearFromFilename(filename) {
@@ -206,187 +332,3 @@ class Parser {
 }
 
 export { Parser }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-
-
-let outputToMultipleFiles = true;
-
-let outputFile = "../data/data.json";
-
-let basePath = "/Volumes/Seagate/Krak/extracts/";
-let filenames = fs.readdirSync(basePath);
-
-// Regex patterns for various elements
-let regexes = {
-    gadenavn: /(^\d| )?(?<gadenavn>[A-ZÆØÅ]+(?:\s|[A-ZÆØÅ]|\W)*[A-ZÆØÅ]+$)/,   // capturing group: gadenavn
-    kommune: /^Kommune\W+(?<kommunenavn>[A-Za-zÆØæøå]*$)/,            // capturing group: kommunenavn
-    postnr: /^(?<postnr>(?:\d|[^A-ZÆØÅa-zæøå ]){4}) +(?<by>[A-Za-zÆØÅæøå ]+)/,     // capturing groups: postnr og by
-    name: /^(?<nummer>(?:. |\d+))*(?<navn>[A-ZÆØÅ][a-zæøå]+(?: [A-ZÆØÅ][a-zæøå]+)*)/, // capturing groups: number + navn
-    phone: /(?<!\d)(?<phone>\d[\d ,]*|Hem.nr.)$/,                   // Virker ikke helt; gruppen phone returnerer også enkelte tal
-    disregards: /Sogn|Valgkr.+|Politikr.+|Politist.+|Kvarter|Lokalcenter|Kort|\(.+\)/
-}
-
-// Dataoutput
-let collection = {
-    info: "Dette er et datasæt over Kraks gaderegistre fra 2001-2007. Bemærk at årene 2003-2007 er registreret som 2003-2004, 2004-2005, 2005-2006, mv.",
-    gadenavne: [],
-    data: []
-}
-
-// run();
-
-// Reader
-function run() {
-     for (let filename of filenames) {
-        if (filename[0] === ".") { continue; }
-
-        let fullPath = path.join(basePath, filename)
-        let data = fs.readFileSync(fullPath, 'utf-8');
-            
-        parseFile(filename, data);
-        
-        // Output to file
-        printData(data);
-        let json = JSON.stringify(collection, null, 2);
-        let writePath = path.join(basePath, "output.json");
-        fs.writeFileSync(writePath, json, 'utf-8');
-
-    }
-}
-
-    function printData(data) {
-
-}
-
-// A function that takes a filename of the current file and the file content as a string
-function parseFile(filename, data) {
-    // Give me an array of lines to loop over
-    let lines = data.split("\n")
-    
-    let successfulLines = 0;
-    let abandonedLines = 0;
-
-    let year = getYearFromFilename(filename);
-    let dataObj = {
-        year: year,
-        people: []
-    }
-    collection.data.push(dataObj);
-
-    let currentGade = null;
-    let currentPostnr = null;
-    let currentBy = null;
-
-    // Going over every line
-    for (let i = 0; i < 1000; i++) {
-        let name;
-        let phone;
-        let streetNumber = null;
-
-        if (regexes.disregards.test(lines[i])) {
-            continue;
-        }
-
-        // TODO: Lav et tjek til at se, om der er noget kolofon-agtigt inden gaderne
-
-        if (regexes.gadenavn.test(lines[i])) {
-            if (regexes.postnr.test(lines[i+1])) {
-                currentGade = regexes.gadenavn.exec(lines[i]).groups.gadenavn;
-                let streetInfo = regexes.postnr.exec(lines[i+1]);
-                currentPostnr = streetInfo.groups.postnr;
-                currentBy = streetInfo.groups.by;
-                collection.gadenavne.push(currentGade);
-
-                console.log(currentGade + ": " + currentPostnr + " " + currentBy)
-            }
-            
-        }
-
-        if (currentGade) {
-            if (regexes.name.test(lines[i]) && !regexes.disregards.test(lines[i])) { // if a line contains a name
-                let res = regexes.name.exec(lines[i]);
-                name = cleanName(res.groups.navn);
-                if (res.groups.nummer) {
-                    streetNumber = cleanStreetNumber(res.groups.nummer);
-                }
-                if (regexes.phone.test(lines[i])) {
-                    let phoneRes = regexes.phone.exec(lines[i]);
-                    phone = cleanPhoneNumber(phoneRes.groups.phone);
-                } else if (regexes.phone.test(lines[i+1])) {
-                    let phoneRes = regexes.phone.exec(lines[i+1]);
-                    phone = cleanPhoneNumber(phoneRes.groups.phone);
-                } else {
-                    phone = null;
-                }
-
-                let obj = {
-                    lastName: name.lastName,
-                    name: name.name,
-                    phone: phone,
-                    street: currentGade,
-                    streetNumber: streetNumber,
-                    postal: currentPostnr,
-                    city: currentBy
-                }
-                dataObj.people.push(obj)
-
-            }
-        }
-    }
-
-    
-}
-
-function getYearFromFilename(filename) {
-    let yearStr = filename.split("-")[0];
-    let year = undefined;
-    try {
-        year = Number(yearStr);
-    } catch {
-        throw new Error("Conversion to number failed.")
-    }
-    return year;
-}
-
-function cleanPhoneNumber(str) {
-    let res = str.replace(/\D/g, "")
-    
-    return Number(res);
-}
-
-function cleanName(str) {
-    let newStr = str.trim();
-    let names = newStr.split(/\s+/);
-    let nameData = {}
-    nameData.lastName = names[0];
-    nameData.name = names[1];
-    return nameData;
-}
-
-function cleanStreetNumber(str) {
-    let res = str.replace(/\D/g, "")
-    
-    return Number(res);
-}
-*/

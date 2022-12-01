@@ -7,14 +7,16 @@ class Extracter {
     #sourcePath
     #sourceIsDir
     #temporaryDirPath
+    #debug
 
-    constructor(source, temporaryDirectory) {
+    constructor(source, temporaryDirectory, debugMode) {
         this.#sourcePath = source.path;
         this.#sourceIsDir = source.isDir;
         this.#temporaryDirPath = temporaryDirectory;
+        this.#debug = debugMode;
     }
 
-    extractText() {
+    async extractText() {
         let filenames;
         if (this.#sourceIsDir) {
             filenames = this.#getPDFFileNamesInDirectory(this.#sourcePath)
@@ -26,6 +28,12 @@ class Extracter {
                 throw new Error("Not a valid file path.")
             }
             
+        }
+
+        if (this.#debug) {
+            console.log('------------------------------------------')
+            console.log('Reading from original files: ' + filenames.join(", "));
+            console.log('------------------------------------------')
         }
 
         for (let filename of filenames) {
@@ -45,16 +53,30 @@ class Extracter {
     #extractFromPDF(fullSourceFilePath, fullTemporaryFilePath) {
         // console.log(cmd)
         let cmdCommand = "pdftotext -raw " + fullSourceFilePath + " " + fullTemporaryFilePath;
-        console.log(cmdCommand);
-        cmd.run(cmdCommand, function(err, data, stderr) {
-            if (err) throw new Error("Something went wrong in running the pdftotext command");
-        });
+
+        if (this.#debug) {
+            console.log('------------------------------------------')
+            console.log('Running command:')
+            console.log(cmdCommand);
+            console.log('------------------------------------------')
+        }
+
+        try {
+            cmd.runSync(cmdCommand);
+            if (this.#debug) {
+                console.log('------------------------------------------')
+                console.log('Successfully extracted text from file: ' + fullSourceFilePath);
+                console.log('------------------------------------------')
+            }
+
+        } catch {
+            throw new Error("Something went wrong in running the pdftotext command");
+        }
     }
 
     #getPDFFileNamesInDirectory(dir) {
         let res = utils.getFileNamesInDirectory(dir);
         let pdfs = res.filter((filename) => this.#isValidPDFFile(filename));
-        console.log(pdfs);
         return pdfs;
     }
 

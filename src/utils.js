@@ -35,5 +35,15 @@ export default {
         } catch {
             throw new Error("Could not delete temporary files or folder");
         }
+    },
+
+    writeArrayToFile(destDir, array, filename) {
+        let fullPath = path.join(destDir, filename);
+        let str = array.join("\n")
+        try {
+            fs.writeFileSync(fullPath, str, 'utf-8');
+        } catch {
+            throw new Error("Encountered problem when writing to file: "+ filename);
+        }
     }
 }
