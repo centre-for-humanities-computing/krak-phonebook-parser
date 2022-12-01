@@ -12,7 +12,7 @@ async function run() {
     program.option('-f, --file', "Flag. If present, writes parser statistics to file in output directory. Otherwise writes to the terminal.")
     program.option('-t, --threshold <integer>', 'The minimum length in characters for a line to be considered')
     program.option('-p, --parse', 'Parse only (skips the extraction of text from PDF). Useful when experimenting with different rules and thresholds')
-    program.option('k, --keep', 'Keeps the temporary folder and the raw text extracted from the PDFs')
+    program.option('-k, --keep', 'Keeps the temporary folder and the raw text extracted from the PDFs')
     program.option('-b, --debug', 'Run in debugging mode')
     program.parse();
 

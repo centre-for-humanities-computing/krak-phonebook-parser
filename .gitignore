@@ -134,11 +134,5 @@ dist
 
 # Custom ignores
 .DS_Store
-test.js
-texts/
-todo.md
-test/output.html
-test/output.txt
-test/snippet.txt
 test-data
 test-data/*
