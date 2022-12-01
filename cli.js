@@ -6,7 +6,7 @@ import utils from './src/utils.js';
 import { Extracter } from "./src/extracter.js";
 import { Parser } from "./src/parser.js";
 
-function run() {
+async function run() {
     program.requiredOption('-s, --source <path>', 'The absolute source path to read from. If resolves to a directory, parses all files in the directory. If path to file, parse only that file');
     program.requiredOption('-d, --destination <directory>', 'The absolute path to a folder in which to output data')
     program.parse();
@@ -17,12 +17,14 @@ function run() {
 
     let temporaryDirectory = path.join(destination.path, "/temp/");
     utils.makeTemporaryDirectory(temporaryDirectory);
+
+    console.log(temporaryDirectory);
     
     let extracter = new Extracter(source, temporaryDirectory);
-    extracter.extractText();
+    await extracter.extractText();
 
     let parser = new Parser(temporaryDirectory, destination);
-    parser.parse();
+    await parser.parse();
 
     // utils.removeTemporaryDirectory(temporaryDirectory);
 
@@ -52,5 +54,3 @@ function resolvePath(pathToResolve) {
 }
 
 run();
-
-export { run }

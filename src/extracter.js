@@ -1,5 +1,4 @@
 import cmd from 'node-cmd';
-import fs from 'node:fs';
 import path from 'node:path';
 import utils from './utils.js';
 
@@ -40,7 +39,7 @@ class Extracter {
             let fullTemporaryFilePath = path.join(this.#temporaryDirPath, tempFileName);
             this.#extractFromPDF(fullSourceFilePath, fullTemporaryFilePath);
         }
-
+    
     }
 
     #extractFromPDF(fullSourceFilePath, fullTemporaryFilePath) {

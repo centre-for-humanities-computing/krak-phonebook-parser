@@ -1,4 +1,6 @@
-import rules from '../rules/rules.js';
+import fs from 'fs';
+import path from 'path';
+import { RuleLibrary } from '../rules/rules.js';
 import utils from './utils.js'
 
 
@@ -7,30 +9,180 @@ class Parser {
     #temporaryDirectoryPath
     #destinationDirectoryPath
     #rules
+    #allStreets
+    #ruleLib
 
-    constructor(temporaryDirectoryPath, destinationObj) {
+    constructor(temporaryDirectoryPath, destinationPathObj) {
         this.#temporaryDirectoryPath = temporaryDirectoryPath;
-        this.#destinationDirectoryPath = destinationObj.path;
-        this.#rules = rules;
+        this.#destinationDirectoryPath = destinationPathObj.path;
+        this.#allStreets = new Map();
+        this.#ruleLib = new RuleLibrary();
+
     }
 
     parse() {
         let filenames = this.#getTemporaryFilenames(this.#temporaryDirectoryPath);
+
+        console.log(filenames);
+
         for (let filename of filenames) {
-            let year = this.#getYearFromFilename(filename);
-            this.#parseFile(year);
+            let tempFilePath = path.join(this.#temporaryDirectoryPath, filename);
+            this.#parseFile(tempFilePath, filename);
+        }
+
+        this.#writeToDestinationFile(this.#getAllStreetsAsArray());
+        
+    }
+
+    #parseFile(tempFilePath, filename) {
+        console.log("Parsing temporary file: " + filename);
+
+        let year = this.#getYearFromFilename(filename);
+        let lines = this.#getFileContentasArray(tempFilePath);
+
+        let currentStreet = null;
+        let currentPostal = null;
+        let currentCity = null;
+        let currentPerson = null;
+
+        let totalLines = lines.length;
+        let successfulLines = 0;
+        let failedLines = 0;
+        let ignoredLines = 0;
+
+        let peopleArray = [];
+        
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+            // Test if line is of type to be disregarded
+            if (this.#ruleLib.matchesType(line, year, "disregard")) { 
+                ignoredLines++;
+                continue;
+             }
+            
+            // Test if line contain street
+            let streetMatch = this.#ruleLib.matchesType(line, year, "street");
+            if(streetMatch) {
+                successfulLines++;
+
+                currentStreet = streetMatch.groups.street;
+                currentPostal = null;
+                currentCity = null;
+                let foundStreetOnPreviousLine = true;
+            }
+
+            // Test if line contains postal code and city (but only if not currently any registered)
+            if (!currentPostal && !currentCity) {
+                let postalCityMatch = this.#ruleLib.matchesType(line, year, "postalCity");
+                if (postalCityMatch) {
+                    successfulLines++;
+
+                    currentPostal = postalCityMatch.groups.postal;
+                    currentCity = postalCityMatch.groups.city;
+                    this.#addStreet(currentStreet, currentPostal, currentCity);
+                }
+            }
+
+            // Test if line contains a name (if yes, then test for street number)
+            let nameMatch = this.#ruleLib.matchesType(line, year, "nameHousenumber");
+            if (nameMatch) {
+                successfulLines++;
+
+                let rawName = nameMatch.groups.name;
+                let cleanedName = this.#cleanName(rawName);
+                currentPerson = {
+                    lastName: cleanedName.lastName,
+                    name: cleanedName.name,
+                    number: null
+                }
+
+                if (nameMatch.groups.number) {
+                    let cleanedNumber = this.#cleanStreetNumber(nameMatch.groups.number);
+                    currentPerson.number = cleanedNumber;
+                }
+                console.log(currentPerson);
+
+                // See if there is a phonenumber in the same line; if not, look X lines ahead to check
+                let phoneMatch = this.#ruleLib.matchesType(line, year, "phone");
+                
+            }
+
+            currentPerson = null;
+        }
+
+        console.log("Succesful lines = " + successfulLines);
+        console.log("Disregarded lines = " + ignoredLines);
+
+        // this.#writeToDestinationFile(outputArray, year);
+    }
+
+    #cleanName(str) {
+        let newStr = str.trim();
+        let names = newStr.split(/\s+/);
+        let nameData = {}
+        nameData.lastName = names[0];
+        nameData.name = names[1];
+        return nameData;
+    }
+
+    #cleanStreetNumber(str) {
+        let res = str.replace(/\D/g, "")
+        
+        return Number(res);
+    }
+
+    #getFileContentasArray(tempFilePath) {
+        try {
+            let content = fs.readFileSync(tempFilePath, 'utf-8');
+            return content.split("\n");
+        } catch {
+            throw new Error("There was a problem reading the temporary file.")
         }
     }
 
-    #parseFile(year) {
+    #writeToDestinationFile(dataArray, year = null) {
+        if (!year) {
+            year = "streets";
+        }
+        let filename = year + ".ndjson";
+        console.log("Writing to file: " + filename);
+        let destFilePath = path.join(this.#destinationDirectoryPath, filename);
+        let filePtr;
 
+        try {
+            filePtr = fs.openSync(destFilePath, 'w');
+            for (let el of dataArray) {
+                let jsonEl = JSON.stringify(el);
+                fs.appendFileSync(filePtr, jsonEl + "\n", 'utf-8');
+            }
+        } catch {
+            throw new Error("Something went wrong when saving json output to file.");
+        } finally {
+            if (filePtr) {
+                fs.closeSync(filePtr);
+            }
+        }
     }
 
-    #writeToDestinationFile(data, filename) {
-        // try open file fs.openSync()
-        // skriv linje for linje med fs.writeSync()
-        // catch (err) 
-        // finally if (still open) > fs.close
+    #addStreet(streetname, postalCode, city) {
+        if (this.#allStreets.has(streetname)) {
+            return;
+        }
+
+        this.#allStreets.set(streetname, {
+            street: streetname,
+            postal: postalCode,
+            city: city
+        });
+    }
+
+    #getAllStreetsAsArray() {
+        let res = []
+        let iter = this.#allStreets.entries();
+        for (let [street, data] of iter) {
+            res.push(data);
+        }
+        return res;
     }
 
     #getTemporaryFilenames(dir) {
@@ -54,16 +206,6 @@ class Parser {
 }
 
 export { Parser }
-
-
-
-
-
-
-
-
-
-
 
 
 
