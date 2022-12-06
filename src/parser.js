@@ -195,7 +195,7 @@ class Parser {
                 console.log(line);
             }
         } else {
-            let outputPath = path.join(this.#destinationDirectoryPath, "/stats.txt")
+            let outputPath = path.join(this.#destinationDirectoryPath, "/stats/stats.txt")
             let filePtr;
             try{
                 filePtr = fs.openSync(outputPath, 'w');

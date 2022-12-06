@@ -6,6 +6,15 @@ export default {
         return fs.readdirSync(dir);
     },
 
+    filterFilenamesByExtension: function(dirList, extension) {
+        let regex = new RegExp(`^[^._].*\.${extension}$`, "i")
+        console.log(regex)
+        return dirList.filter(function(filename) {
+            return regex.test(filename);
+        })
+    }
+    ,
+
     makeTemporaryDirectory: function (tempPath) {
         // let tempPath = path.join(basePath, "temp");
         if (fs.existsSync(tempPath)) {
