@@ -8,7 +8,8 @@ process.argv.push(...[
     '-d', destPath,
     '-f',
     '-b',
-    
+    '-k',
+    '-p'
 ]);
 
 import('./cli.js'); // use dynamic import to avoid hoisting

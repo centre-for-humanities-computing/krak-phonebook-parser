@@ -15,7 +15,7 @@ export default {
     }
     ,
 
-    makeTemporaryDirectory: function (tempPath) {
+    makeDirectory: function (tempPath) {
         // let tempPath = path.join(basePath, "temp");
         if (fs.existsSync(tempPath)) {
             return;
@@ -24,11 +24,11 @@ export default {
         try {
             fs.mkdirSync(tempPath)
         } catch {
-            throw new Error("Something went wrong in creating a temporary folder");
+            throw new Error("Something went wrong in creating a folder");
         }
     },
 
-    removeTemporaryDirectory: function(tempPath) {
+    removeDirectory: function(tempPath) {
         // let tempPath = path.join(basePath, "temp");
         if (!fs.existsSync(tempPath)) {
             return;
@@ -42,7 +42,7 @@ export default {
             fs.rmdirSync(tempPath);
             
         } catch {
-            throw new Error("Could not delete temporary files or folder");
+            throw new Error("Could not delete files or folder");
         }
     },
 

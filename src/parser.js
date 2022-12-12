@@ -43,7 +43,9 @@ class Parser {
         this.#writeToDestinationFile(this.#getAllStreetsAsArray());
         this.#outputStats(printStatsToFile);
         if (this.#debug) {
-            utils.writeArrayToFile(this.#destinationDirectoryPath, this.#unparsedLines, "failed-lines.txt");
+            let outputDir = path.join(this.#destinationDirectoryPath, "stats");
+            utils.makeDirectory(outputDir);
+            utils.writeArrayToFile(outputDir, this.#unparsedLines, "failed-lines.txt");
         }
     }
 
@@ -195,7 +197,10 @@ class Parser {
                 console.log(line);
             }
         } else {
-            let outputPath = path.join(this.#destinationDirectoryPath, "/stats/stats.txt")
+            let outputDir = path.join(this.#destinationDirectoryPath, "/stats/");
+            utils.makeDirectory(outputDir);
+            let outputPath = path.join(outputDir, "stats.txt")
+
             let filePtr;
             try{
                 filePtr = fs.openSync(outputPath, 'w');

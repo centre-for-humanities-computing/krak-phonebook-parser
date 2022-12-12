@@ -32,7 +32,7 @@ async function run() {
     }
 
     let temporaryDirectory = path.join(destination.path, "/temp/");
-    utils.makeTemporaryDirectory(temporaryDirectory);
+    utils.makeDirectory(temporaryDirectory);
 
     console.log(temporaryDirectory);
     
@@ -45,7 +45,7 @@ async function run() {
     parser.parse(printStatsToFile);
 
     if (!keep) {
-        utils.removeTemporaryDirectory(temporaryDirectory);
+        utils.removeDirectory(temporaryDirectory);
     }
 
 }
