@@ -47,7 +47,6 @@ function readFile(destination, file) {
 
         if (last) {
             let uniqueNamesAsArray = Array.from(map.values());
-            console.log(uniqueNamesAsArray);
             let destinationFilename = `${file.year}-unique.ndjson`;
             utils.writeArrayToFile(destination, uniqueNamesAsArray, destinationFilename);
             return false;
