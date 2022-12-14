@@ -5,6 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "pretest": "echo 'Testing'",
     "test": "node test.js"
   },
   "repository": {
