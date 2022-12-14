@@ -3,97 +3,104 @@ import path from 'node:path';
 import utils from './src/utils.js'
 import lr from 'line-reader';
 
+const DESTINATION_PATH = "/unique-names/";
+
 // Description
 // Finds all unique names
 
-if (process.argv.length < 3) {
-    console.error("Error: You must provide an absolute path to the directory containing the .ndjson files as argument")
-    process.exit();
-}
-
-let sourcePath = process.argv[2];
-let destinationPath;
-let year = process.argv[3];
-
-let properFiles = [];
-
-try {
-    if (path.isAbsolute(sourcePath)) {
-        let dirContent = fs.readdirSync(sourcePath);
-        if (dirContent.length === 0) {
-            console.log("Directory is empty. Exits program.");
-            process.exit();
-        }
-        let ndjsonFiles = utils.filterFilenamesByExtension(dirContent, "ndjson");
-        destinationPath = path.join(sourcePath, "unique");
-        utils.makeDirectory(destinationPath);
-        if (year) {
-            for (let filename of ndjsonFiles) {
-                if (filename.indexOf(year) > -1) {
-                    properFiles.push(filename);
-                }
-            }
-        } else {
-            properFiles = ndjsonFiles.filter(function(filename) {
-                return /\d{4}/.test(filename); 
-            }) 
-        }
-    } else {
-        console.error("Path is not absolute. Exiting program.")
-        process.exit();
+function run() {
+    if (process.argv.length < 3) {
+        throw new Error("Error: You must provide an absolute path to the directory containing the .ndjson files as argument");
     }
-} catch {
-    throw new Error("Something went wrong when resolving filenames.")
+
+    let sourcePath = process.argv[2];
+    checkPath(sourcePath);
+
+    let year = process.argv[3];
+    let files = getValidFiles(sourcePath, year);
+
+    let destinationPath = path.join(sourcePath, DESTINATION_PATH);
+    utils.makeDirectory(destinationPath);
+
+    for (let file of files) {
+        readFile(destinationPath, file);
+    }
 }
 
-for (let filename of properFiles) {
-    
-    let fullPath = path.join(sourcePath, filename)
-    let year = /\d{4}/i.exec(filename);
+run();
 
-    let names = new Map();
-
-    lr.eachLine(fullPath, function(line, last) {
+function readFile(destination, file) {
+    let map = new Map();
+    let notUniqueNames = [];
+    lr.eachLine(file.fullPath, function(line, last) {
         let data = JSON.parse(line);
         let name = data.name;
 
-        if (!names.has(name)) {
-            names.set(name, 1);
+        if (map.has(name) || notUniqueNames.includes(name)) {
+            map.delete(name);
+            if (!notUniqueNames.includes(name)) {
+                notUniqueNames.push(name);
+            }
         } else {
-            names.set(name, names.get(name)+1)
+            map.set(name, line);
         }
 
         if (last) {
-            console.log(names);
+            let uniqueNamesAsArray = Array.from(map.values());
+            console.log(uniqueNamesAsArray);
+            let destinationFilename = `${file.year}-unique.ndjson`;
+            utils.writeArrayToFile(destination, uniqueNamesAsArray, destinationFilename);
             return false;
         }
+    })
+}
+
+function getValidFiles(dir, year) {
+    let dirContent = utils.getFileNamesInDirectory(dir);
+    let ndjsonFiles = utils.filterFilenamesByExtension(dirContent, "ndjson");
+    
+    ndjsonFiles = ndjsonFiles.filter(function(filename){
+        return utils.stringContainsRegex(filename, /\d{4}/i); // contains year in the filename
     });
 
-    let uniqueNames = [];
+    if (dirContent.length === 0 || ndjsonFiles.length === 0) {
+        throw new Error("Directory must contain at least one .ndjson file with a year in the filename")
+    }
 
-    for (let [k, v] of names) {
-        if (v === 1) {
-            uniqueNames.push(k);
+    let validFiles = ndjsonFiles.map(function(filename) {
+        return {
+            filename: filename,
+            fullPath: path.join(dir, filename),
+            year: year
+        };
+    })
+
+    if (!year) {
+        return validFiles;
+    } else {
+        let regex = new RegExp(`${year}`, "i");
+
+        validFiles = validFiles.filter(function(file) {
+            return utils.stringContainsRegex(file.filename, regex);
+        });
+        
+        if(validFiles.length > 0) {
+            return validFiles.slice(0, 1);
+        } else {
+            throw new Error("No matching files found for year: " + year);
         }
     }
 
-    let output = "";
-
-    lr.eachLine(fullPath, function(line, last) {
-        let data = JSON.parse(line);
-        if (uniqueNames.includes(data.name)) {
-            output += line + "\n";
-        }
-
-        if (last) {
-            console.log(output)
-
-            return false;
-        }
-    });
-
-    
 }
 
-// Load files
-// Map to unique instances
+function checkPath(pathToCheck) {
+    let pathObj = path.parse(pathToCheck);
+
+    if (pathObj.ext.length > 0) {
+        throw new Error("Path must be a directory, not a file");
+    }
+
+    if (!path.isAbsolute(pathToCheck)) {
+        throw new Error("Path must be absolute");
+    }
+}

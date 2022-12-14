@@ -2,11 +2,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export default {
-    getFileNamesInDirectory: function(dir) {
-        return fs.readdirSync(dir);
+    stringContainsRegex(str, regex) {
+        return regex.test(str);
+    },
+    getFileNamesInDirectory(dir) {
+        try {
+            return fs.readdirSync(dir);
+        } catch {
+            throw new Error("Something went wrong when reading directory: " + dir);
+        }
     },
 
-    filterFilenamesByExtension: function(dirList, extension) {
+    filterFilenamesByExtension(dirList, extension) {
         let regex = new RegExp(`^[^._].*\.${extension}$`, "i")
         console.log(regex)
         return dirList.filter(function(filename) {
@@ -15,31 +22,29 @@ export default {
     }
     ,
 
-    makeDirectory: function (tempPath) {
-        // let tempPath = path.join(basePath, "temp");
-        if (fs.existsSync(tempPath)) {
+    makeDirectory(p) {
+        if (fs.existsSync(p)) {
             return;
         }
 
         try {
-            fs.mkdirSync(tempPath)
+            fs.mkdirSync(p)
         } catch {
             throw new Error("Something went wrong in creating a folder");
         }
     },
 
-    removeDirectory: function(tempPath) {
-        // let tempPath = path.join(basePath, "temp");
-        if (!fs.existsSync(tempPath)) {
+    removeDirectory(p) {
+        if (!fs.existsSync(p)) {
             return;
         }
         try {
-            let filenames = fs.readdirSync(tempPath);
+            let filenames = fs.readdirSync(p);
             for (let filename of filenames) {
-                let filePath = path.join(tempPath, filename);
+                let filePath = path.join(p, filename);
                 fs.rmSync(filePath);
             }
-            fs.rmdirSync(tempPath);
+            fs.rmdirSync(p);
             
         } catch {
             throw new Error("Could not delete files or folder");
