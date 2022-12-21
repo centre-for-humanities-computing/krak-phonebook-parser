@@ -15,7 +15,7 @@ export default {
 
     filterFilenamesByExtension(dirList, extension) {
         let regex = new RegExp(`^[^._].*\.${extension}$`, "i")
-        console.log(regex)
+        // console.log(regex)
         return dirList.filter(function(filename) {
             return regex.test(filename);
         })

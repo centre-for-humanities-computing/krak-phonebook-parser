@@ -30,6 +30,7 @@ function run() {
 run();
 
 function readFile(destination, file) {
+    console.log("Reading file: " + file.filename);
     let map = new Map();
     let notUniqueNames = [];
     lr.eachLine(file.fullPath, function(line, last) {
@@ -70,7 +71,7 @@ function getValidFiles(dir, year) {
         return {
             filename: filename,
             fullPath: path.join(dir, filename),
-            year: year
+            year: /\d{4}/.exec(filename)
         };
     })
 
